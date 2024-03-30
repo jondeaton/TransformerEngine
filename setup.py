@@ -24,6 +24,7 @@ from te_version import te_version
 # Project directory root
 root_path: Path = Path(__file__).resolve().parent
 
+
 @lru_cache(maxsize=1)
 def with_debug_build() -> bool:
     """Whether to build with a debug configuration"""
@@ -35,12 +36,14 @@ def with_debug_build() -> bool:
         return True
     return False
 
+
 # Call once in global scope since this function manipulates the
 # command-line arguments. Future calls will use a cached value.
 with_debug_build()
 
+
 def found_cmake() -> bool:
-    """"Check if valid CMake is available
+    """ "Check if valid CMake is available
 
     CMake 3.18 or newer is required.
 
@@ -60,9 +63,10 @@ def found_cmake() -> bool:
         universal_newlines=True,
     )
     match = re.search(r"version\s*([\d.]+)", output.stdout)
-    version = match.group(1).split('.')
+    version = match.group(1).split(".")
     version = tuple(int(v) for v in version)
     return version >= (3, 18)
+
 
 def cmake_bin() -> Path:
     """Get CMake executable
@@ -94,12 +98,14 @@ def cmake_bin() -> Path:
         raise FileNotFoundError("Could not find CMake executable")
     return _cmake_bin
 
+
 def found_ninja() -> bool:
-    """"Check if Ninja is available"""
+    """ "Check if Ninja is available"""
     return shutil.which("ninja") is not None
 
+
 def found_pybind11() -> bool:
-    """"Check if pybind11 is available"""
+    """ "Check if pybind11 is available"""
 
     # Check if Python package is installed
     try:
@@ -131,6 +137,7 @@ def found_pybind11() -> bool:
     else:
         return True
     return False
+
 
 def cuda_version() -> Tuple[int, ...]:
     """CUDA Toolkit version as a (major, minor) tuple
@@ -165,17 +172,18 @@ def cuda_version() -> Tuple[int, ...]:
         universal_newlines=True,
     )
     match = re.search(r"release\s*([\d.]+)", output.stdout)
-    version = match.group(1).split('.')
+    version = match.group(1).split(".")
     return tuple(int(v) for v in version)
+
 
 @lru_cache(maxsize=1)
 def with_userbuffers() -> bool:
     """Check if userbuffers support is enabled"""
     if int(os.getenv("NVTE_WITH_USERBUFFERS", "0")):
-        assert os.getenv("MPI_HOME"), \
-            "MPI_HOME must be set if NVTE_WITH_USERBUFFERS=1"
+        assert os.getenv("MPI_HOME"), "MPI_HOME must be set if NVTE_WITH_USERBUFFERS=1"
         return True
     return False
+
 
 @lru_cache(maxsize=1)
 def frameworks() -> List[str]:
@@ -195,12 +203,12 @@ def frameworks() -> List[str]:
 
     # Detect installed frameworks if not explicitly specified
     if not _frameworks:
-        try:
-            import torch
-        except ImportError:
-            pass
-        else:
-            _frameworks.append("pytorch")
+        # try:
+        #     import torch
+        # except ImportError:
+        #     pass
+        # else:
+        #     _frameworks.append("pytorch")
         try:
             import jax
         except ImportError:
@@ -230,9 +238,11 @@ def frameworks() -> List[str]:
 
     return _frameworks
 
+
 # Call once in global scope since this function manipulates the
 # command-line arguments. Future calls will use a cached value.
 frameworks()
+
 
 def setup_requirements() -> Tuple[List[str], List[str], List[str]]:
     """Setup Python dependencies
@@ -283,10 +293,10 @@ class CMakeExtension(setuptools.Extension):
     """CMake extension module"""
 
     def __init__(
-            self,
-            name: str,
-            cmake_path: Path,
-            cmake_flags: Optional[List[str]] = None,
+        self,
+        name: str,
+        cmake_path: Path,
+        cmake_flags: Optional[List[str]] = None,
     ) -> None:
         super().__init__(name, sources=[])  # No work for base class
         self.cmake_path: Path = cmake_path
@@ -362,7 +372,9 @@ class CMakeBuildExtension(BuildExtension):
                 # Set up incremental builds for CMake extensions
                 setup_dir = Path(__file__).resolve().parent
                 build_dir = setup_dir / "build" / "cmake"
-                build_dir.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
+                build_dir.mkdir(
+                    parents=True, exist_ok=True
+                )  # Ensure the directory exists
                 package_path = Path(self.get_ext_fullpath(ext.name))
                 install_dir = package_path.resolve().parent
                 ext._build_cmake(
@@ -382,8 +394,7 @@ class CMakeBuildExtension(BuildExtension):
         # Build non-CMake extensions as usual
         all_extensions = self.extensions
         self.extensions = [
-            ext for ext in self.extensions
-            if not isinstance(ext, CMakeExtension)
+            ext for ext in self.extensions if not isinstance(ext, CMakeExtension)
         ]
         super().run()
         self.extensions = all_extensions
@@ -398,8 +409,9 @@ class CMakeBuildExtension(BuildExtension):
 
             # Figure out stub file path
             module_name = paddle_ext.name
-            assert module_name.endswith("_pd_"), \
-                "Expected Paddle extension module to end with '_pd_'"
+            assert module_name.endswith(
+                "_pd_"
+            ), "Expected Paddle extension module to end with '_pd_'"
             stub_name = module_name[:-4]  # remove '_pd_'
             stub_path = os.path.join(self.build_lib, stub_name + ".py")
 
@@ -413,6 +425,7 @@ class CMakeBuildExtension(BuildExtension):
             # Write stub file
             print(f"Writing Paddle stub for {lib_name} into file {stub_path}")
             from paddle.utils.cpp_extension.extension_utils import custom_write_stub
+
             custom_write_stub(lib_name, stub_path)
 
 
@@ -433,8 +446,10 @@ def setup_common_extension() -> CMakeExtension:
         cmake_flags=cmake_flags,
     )
 
+
 def _all_files_in_dir(path):
     return list(path.iterdir())
+
 
 def setup_pytorch_extension() -> setuptools.Extension:
     """Setup CUDA extension for PyTorch support"""
@@ -445,8 +460,7 @@ def setup_pytorch_extension() -> setuptools.Extension:
     sources = [
         src_dir / "common.cu",
         src_dir / "ts_fp8_op.cpp",
-    ] + \
-    _all_files_in_dir(extensions_dir)
+    ] + _all_files_in_dir(extensions_dir)
 
     # Header files
     include_dirs = [
@@ -498,6 +512,7 @@ def setup_pytorch_extension() -> setuptools.Extension:
     sources = [str(path) for path in sources]
     include_dirs = [str(path) for path in include_dirs]
     from torch.utils.cpp_extension import CUDAExtension
+
     return CUDAExtension(
         name="transformer_engine_extensions",
         sources=sources,
@@ -562,6 +577,7 @@ def setup_paddle_extension() -> setuptools.Extension:
     sources = [str(path) for path in sources]
     include_dirs = [str(path) for path in include_dirs]
     from paddle.utils.cpp_extension import CUDAExtension
+
     ext = CUDAExtension(
         sources=sources,
         include_dirs=include_dirs,
@@ -573,6 +589,7 @@ def setup_paddle_extension() -> setuptools.Extension:
     )
     ext.name = "transformer_engine_paddle_pd_"
     return ext
+
 
 def main():
 

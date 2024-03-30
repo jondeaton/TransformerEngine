@@ -11,18 +11,23 @@ find_path(
     REQUIRED
 )
 
+set(CUDNN_PATH "/mnt/main0/home/jdeaton/opt/cudnn/cudnn-linux-x86_64-8.9.7.29_cuda12-archive")
+set(CUDNN_INCLUDE_DIR "${CUDNN_PATH}/include")
+set(cudnn_LIBRARY "${CUDNN_PATH}/lib/libcudnn.so")
+
 file(READ "${CUDNN_INCLUDE_DIR}/cudnn_version.h" cudnn_version_header)
 string(REGEX MATCH "#define CUDNN_MAJOR [1-9]+" macrodef "${cudnn_version_header}")
 string(REGEX MATCH "[1-9]+" CUDNN_MAJOR_VERSION "${macrodef}")
 
 function(find_cudnn_library NAME)
-    find_library(
-        ${NAME}_LIBRARY ${NAME} "lib${NAME}.so.${CUDNN_MAJOR_VERSION}"
-        HINTS $ENV{CUDNN_PATH} ${CUDNN_PATH} ${CUDAToolkit_LIBRARY_DIR}
-        PATH_SUFFIXES lib64 lib/x64 lib
-        REQUIRED
-    )
-    
+    # find_library(
+    #     ${NAME}_LIBRARY ${NAME} "lib${NAME}.so.${CUDNN_MAJOR_VERSION}"
+    #     # HINTS $ENV{CUDNN_PATH} ${CUDNN_PATH} ${CUDAToolkit_LIBRARY_DIR}
+    #     PATH_SUFFIXES lib64 lib/x64 lib
+    #     REQUIRED
+    # )
+    set(${NAME}_LIBRARY "${CUDNN_PATH}/lib/lib${NAME}.so.${CUDNN_MAJOR_VERSION}")
+
     if(${NAME}_LIBRARY)
         add_library(CUDNN::${NAME} UNKNOWN IMPORTED)
         set_target_properties(
@@ -42,7 +47,7 @@ find_cudnn_library(cudnn)
 
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
-    LIBRARY REQUIRED_VARS
+    CUDNN REQUIRED_VARS
     CUDNN_INCLUDE_DIR cudnn_LIBRARY
 )
 
@@ -50,7 +55,7 @@ if(CUDNN_INCLUDE_DIR AND cudnn_LIBRARY)
 
     message(STATUS "cuDNN: ${cudnn_LIBRARY}")
     message(STATUS "cuDNN: ${CUDNN_INCLUDE_DIR}")
-    
+
     set(CUDNN_FOUND ON CACHE INTERNAL "cuDNN Library Found")
 
 else()
@@ -69,7 +74,7 @@ target_include_directories(
 target_link_libraries(
     CUDNN::cudnn_all
     INTERFACE
-    CUDNN::cudnn 
+    CUDNN::cudnn
 )
 
 if(CUDNN_MAJOR_VERSION EQUAL 8)
